@@ -1,7 +1,6 @@
 import numpy as np
 import math
 
-# ===================== ОБЩИЕ ПАРАМЕТРЫ =====================
 OMEGA = 25
 A_PARAM = 2.5 + OMEGA / 40.0
 
@@ -18,43 +17,13 @@ NEWTON_EPS = 1e-9
 NEWTON_MAX_ITER = 50
 
 
-# ===================== ПРАВАЯ ЧАСТЬ =====================
 def func(t, u):
     u1, u2 = u
     term1 = 1.0 if abs(t) < 1e-9 else math.sin(t) / t
-
     du1 = -u1 * u2 + term1
     du2 = -u2 ** 2 + (A_PARAM * t) / (1 + t ** 2)
-
     return np.array([du1, du2])
 
-
-# ===================== ЯВНЫЙ МЕТОД ЭЙЛЕРА =====================
-def explicit_euler_method():
-    t = T_START
-    u = U0.copy()
-    steps = 0
-
-    while t < T_END - 1e-9:
-        steps += 1
-
-        f_val = func(t, u)
-        max_f = np.max(np.abs(f_val))
-
-        if max_f < 1e-9:
-            tau = TAU_MAX
-        else:
-            tau = EPS / max_f
-
-        tau = min(tau, TAU_MAX)
-
-        if t + tau > T_END:
-            tau = T_END - t
-
-        u = u + tau * f_val
-        t += tau
-
-    return u, steps
 
 def gauss_solve(A, b):
     A = A.astype(float).copy()
@@ -80,7 +49,7 @@ def gauss_solve(A, b):
 
     return x
 
-# ===================== НЬЮТОН ДЛЯ НЕЯВНОГО МЕТОДА =====================
+
 def newton_step(u_prev, t_next, tau):
     u = u_prev.copy()
 
@@ -102,13 +71,15 @@ def newton_step(u_prev, t_next, tau):
     raise RuntimeError("Метод Ньютона не сошёлся")
 
 
-# ===================== НЕЯВНЫЙ МЕТОД ЭЙЛЕРА =====================
 def implicit_euler_quasi():
     t = T_START
     u = U0.copy()
     u_prev = U0.copy()
     tau = TAU_MIN
     steps = 0
+
+    print("\n=== НЕЯВНЫЙ МЕТОД ЭЙЛЕРА (КВАЗИОПТИМАЛЬНАЯ) ===")
+    print(f"{'t':<10} | {'u1':<12} | {'u2':<12} | {'tau':<10}")
 
     while t < T_END - 1e-9:
         if t + tau > T_END:
@@ -132,30 +103,16 @@ def implicit_euler_quasi():
         u_prev = u.copy()
         u = u_next
 
+        print(f"{t:<10.4f} | {u[0]:<12.6f} | {u[1]:<12.6f} | {tau:<10.6f}")
+
         if eps_loc > 1e-14:
             tau = tau * math.sqrt(EPS / eps_loc)
 
         tau = min(max(tau, TAU_MIN), TAU_MAX)
 
+    print(f"Всего шагов: {steps}")
     return u, steps
 
 
-# ===================== СРАВНЕНИЕ МЕТОДОВ =====================
-def compare_methods():
-    u_explicit, steps_explicit = explicit_euler_method()
-    u_implicit, steps_implicit = implicit_euler_quasi()
-
-    print("\n================= СРАВНЕНИЕ МЕТОДОВ =================")
-    print(f"{'Метод':<30} | {'u1(T)':<12} | {'u2(T)':<12} | {'Шаги'}")
-    print("-" * 70)
-    print(f"{'Explicit Euler method':<30} | {u_explicit[0]:<12.6f} | {u_explicit[1]:<12.6f} | {steps_explicit}")
-    print(f"{'Implicit Euler method':<30} | {u_implicit[0]:<12.6f} | {u_implicit[1]:<12.6f} | {steps_implicit}")
-
-    diff = np.linalg.norm(u_explicit - u_implicit, ord=np.inf)
-    print("-" * 70)
-    print(f"Максимальное отличие решений: {diff:.3e}")
-
-
-# ===================== ЗАПУСК =====================
 if __name__ == "__main__":
-    compare_methods()
+    implicit_euler_quasi()
